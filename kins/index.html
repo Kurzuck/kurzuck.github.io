@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kINS Search</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #search-container {
+            margin-top: 50px;
+        }
+
+        #search {
+            padding: 10px;
+            font-size: 18px;
+            border: none;
+            outline: none;
+            background: black;
+            color: white;
+            border-bottom: 3px solid yellow;
+        }
+
+        #searchBtn {
+            padding: 10px 15px;
+            background-color: orange;
+            border: none;
+            color: black;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 10px;
+            border-radius: 5px;
+        }
+
+        #results {
+            margin-top: 20px;
+            font-size: 18px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .fact-box {
+            background: rgba(255, 140, 0, 0.2);
+            color: white;
+            padding: 10px;
+            margin: 10px auto;
+            width: 60%;
+            border-radius: 8px;
+            font-size: 18px;
+            transition: 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .fact-box:hover {
+            border-color: orange;
+            box-shadow: 0px 0px 10px orange;
+        }
+
+        #results span {
+            background: yellow;
+            color: black;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        #debug-message {
+            color: white;
+            font-size: 16px;
+            margin-top: 10px;
+            display: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <p>-----</p>
+    <h1>kINS Search</h1>
+    <p>Search Kduckology Database</p>
+    <p>Send requests to kduckology@gmail.com</p>
+    <p>advertisements currently $0.00/month</p>
+    <div id="search-container">
+        <input type="text" id="search" placeholder="Search science facts..." autofocus>
+        <button id="searchBtn">Search</button>
+    </div>
+    <div id="debug-message"></div>
+    <div id="results"></div>
+
+    <script>
+        let scienceFacts = [];
+
+        function loadFacts(primaryUrl, fallbackUrl) {
+            showDebugMessage(`Attempting to load facts from ${primaryUrl}...`);
+
+            fetch(primaryUrl)
+                .then(response => {
+                    if (!response.ok) throw new Error(`Failed to fetch from primary: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    scienceFacts = data.scienceFacts;
+                    showDebugMessage("Facts loaded successfully!");
+                })
+                .catch(error => {
+                    showDebugMessage(`Primary source failed: ${error}. Trying fallback...`);
+                    fetch(fallbackUrl)
+                        .then(response => {
+                            if (!response.ok) throw new Error(`Fallback also failed: ${response.status}`);
+                            return response.json();
+                        })
+                        .then(data => {
+                            scienceFacts = data.scienceFacts;
+                            showDebugMessage("Facts loaded from fallback source!");
+                        })
+                        .catch(err => showDebugMessage(`Error loading facts: ${err}`));
+                });
+        }
+
+        window.onload = function() {
+            loadFacts("https://kurzuck.github.io/kins/data.json", "https://kurzuck.github.io/kins/data.json");
+
+            let searchBtn = document.getElementById("searchBtn");
+            let searchInput = document.getElementById("search");
+
+            searchBtn.addEventListener("click", function() {
+                showDebugMessage("Search button clicked!");
+                executeSearch();
+            });
+
+            searchInput.addEventListener("keydown", function(event) {
+                if (event.key === "Enter") {
+                    showDebugMessage("Enter key pressed!");
+                    executeSearch();
+                }
+            });
+
+            window.onerror = function(message) {
+                showDebugMessage("Error: " + message);
+            };
+        };
+
+        function showDebugMessage(message) {
+            let debugDiv = document.getElementById("debug-message");
+            debugDiv.innerText = message;
+            debugDiv.style.display = "block";
+
+            setTimeout(() => {
+                debugDiv.style.display = "none";
+            }, 2000);
+        }
+
+        function executeSearch() {
+            showDebugMessage("Search function started!");
+            searchFacts();
+        }
+
+        function searchFacts() {
+            let query = document.getElementById("search").value.toLowerCase().trim();
+            showDebugMessage("Searching for: " + query);
+
+            let results = scienceFacts.filter(fact => fact.toLowerCase().includes(query));
+
+            let resultsContainer = document.getElementById("results");
+
+            if (results.length === 0) {
+                showDebugMessage("No results found!");
+                resultsContainer.innerHTML = "<div id='no-results'>No results found</div>";
+            } else {
+                showDebugMessage("Results found: " + results.length);
+                resultsContainer.innerHTML = results.map(r =>
+                    `<div class="fact-box">${r.replace(new RegExp(query, "gi"), match => `<span>${match}</span>`)}</div>`
+                ).join('');
+            }
+        }
+    </script>
+</body>
+</html>
